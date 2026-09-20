@@ -1,15 +1,9 @@
 {
-  "builds": [
-    {
-      "src": "app.py",
-      "use": "@vercel/python"
+  "$schema":
+"https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "app.py": {
+      "runtime": "python3.12"
     }
-  ],
-  "routers": [
-    {
-      "src": "/(.*)"
-      "dest": "app.py"
-    }
-  ]
+  }
 }
-
