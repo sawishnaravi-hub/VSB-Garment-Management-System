@@ -1,0 +1,9 @@
+Flask==3.0.0
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.48
+PyMySQL==1.2.0
+python-dotenv==1.2.3
+Werkzeug==3.1.8
+openpyxl==3.1.5
+reportlab==5.0.1
+Pillow==12.3.0
