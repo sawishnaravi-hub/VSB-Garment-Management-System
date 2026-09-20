@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+
+{% block title %}System Settings | VSB Garment Manufacturing{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h3 class="fw-bold mb-1 text-dark">
+                <i class="fa-solid fa-gear text-primary me-2"></i>System Configuration & Company Settings
+            </h3>
+            <p class="text-muted small mb-0">Configure company profile, financial opening capital, and manage user access credentials</p>
+        </div>
+        <div>
+            <button type="button" class="btn btn-vsb-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                <i class="fa-solid fa-user-shield me-1"></i> Add System User
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Company Profile & Financial Config -->
+        <div class="col-lg-6">
+            <div class="card card-table h-100">
+                <div class="p-3 border-bottom bg-light">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-building me-2 text-primary"></i>Company Information & Balance Setup
+                    </h6>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('settings.index') }}">
+                        <input type="hidden" name="action" value="company">
+                        
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Company Name *</label>
+                            <input type="text" name="company_name" class="form-control" value="{{ settings.company_name }}" required>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Opening Capital Balance (₹) *</label>
+                                <input type="number" step="0.01" name="opening_balance" class="form-control fw-bold" value="{{ settings.opening_balance }}" required>
+                                <small class="text-muted">Affects Current Balance calculation</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Currency Symbol</label>
+                                <input type="text" name="currency_symbol" class="form-control" value="{{ settings.currency_symbol }}" required>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Contact Phone</label>
+                                <input type="text" name="phone" class="form-control" value="{{ settings.phone or '' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Contact Email</label>
+                                <input type="email" name="email" class="form-control" value="{{ settings.email or '' }}">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">GSTIN / Tax ID</label>
+                            <input type="text" name="gstin" class="form-control" value="{{ settings.gstin or '' }}">
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-semibold">Registered Factory Address</label>
+                            <textarea name="address" class="form-control" rows="3">{{ settings.address or '' }}</textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-vsb-primary w-100">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Save Company Settings
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Accounts & Roles -->
+        <div class="col-lg-6">
+            <div class="card card-table h-100">
+                <div class="p-3 border-bottom bg-light d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-users-gear me-2 text-primary"></i>Authorized System Users
+                    </h6>
+                    <span class="badge bg-primary">{{ users|length }} Active</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Username</th>
+                                <th>Full Name</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in users %}
+                            <tr>
+                                <td class="fw-bold text-primary">{{ u.username }}</td>
+                                <td>{{ u.full_name }}</td>
+                                <td>
+                                    <span class="badge 
+                                        {% if u.role == 'Admin' %}bg-danger
+                                        {% elif u.role == 'Manager' %}bg-warning text-dark
+                                        {% else %}bg-success{% endif %}">
+                                        {{ u.role }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge-status active">Active</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="p-3 bg-light border-top small text-muted">
+                    <strong>Roles & Permissions Overview:</strong>
+                    <ul class="mb-0 mt-1 ps-3">
+                        <li><strong>Admin:</strong> Full system access, all operations, accounting, settings & user management.</li>
+                        <li><strong>Manager:</strong> Operations control: workers, products, raw materials, production, sales orders.</li>
+                        <li><strong>Accountant:</strong> Financial control: salary payroll, expenses, tax compliance, income, and reports.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add User -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('settings.index') }}">
+                <input type="hidden" name="action" value="create_user">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-plus text-primary me-2"></i>Create System User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Username *</label>
+                        <input type="text" name="username" class="form-control" placeholder="e.g. supervisor1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Full Name *</label>
+                        <input type="text" name="full_name" class="form-control" placeholder="e.g. Anand Murugan" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Email</label>
+                        <input type="email" name="email" class="form-control" placeholder="user@vsbgarments.com">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Role *</label>
+                        <select name="role" class="form-select" required>
+                            <option value="Manager">Manager (Operations)</option>
+                            <option value="Accountant">Accountant (Finance & Payroll)</option>
+                            <option value="Admin">Admin (Full Control)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Password *</label>
+                        <input type="password" name="password" class="form-control" placeholder="Minimum 6 characters" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

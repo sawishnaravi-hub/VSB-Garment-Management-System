@@ -1,0 +1,252 @@
+{% extends 'base.html' %}
+
+{% block title %}Production Management | VSB Garment Manufacturing{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h3 class="fw-bold mb-1 text-dark">
+                <i class="fa-solid fa-industry text-primary me-2"></i>Production & Manufacturing Batches
+            </h3>
+            <p class="text-muted small mb-0">Track garment batches from Cutting & Stitching to Quality Control and Finished Inventory</p>
+        </div>
+        <div>
+            <button type="button" class="btn btn-vsb-primary" data-bs-toggle="modal" data-bs-target="#addProductionModal">
+                <i class="fa-solid fa-plus me-1"></i> Start Production Batch
+            </button>
+        </div>
+    </div>
+
+    <!-- Inventory Automation Notice Banner -->
+    <div class="alert alert-info border-info d-flex align-items-center gap-2 mb-4 py-2" role="alert">
+        <i class="fa-solid fa-circle-info fs-5"></i>
+        <div class="small">
+            <strong>Automated Stock Trigger:</strong> When any production batch is updated to status <strong>Completed</strong>, the system automatically increases the product's available inventory in MySQL!
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card card-table p-3 mb-4">
+        <form method="GET" action="{{ url_for('production.index') }}" class="row g-2 align-items-center">
+            <div class="col-md-5">
+                <select name="product_id" class="form-select">
+                    <option value="">All Products</option>
+                    {% for p in products %}
+                    <option value="{{ p.id }}" {% if selected_product == p.id|string %}selected{% endif %}>{{ p.name }} ({{ p.product_id }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <select name="status" class="form-select">
+                    <option value="">All Production Statuses</option>
+                    {% for st in statuses %}
+                    <option value="{{ st }}" {% if selected_status == st %}selected{% endif %}>{{ st }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary w-100">Filter</button>
+                <a href="{{ url_for('production.index') }}" class="btn btn-outline-secondary" title="Reset"><i class="fa-solid fa-rotate-left"></i></a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Production Batches Table -->
+    <div class="card card-table">
+        <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+            <h6 class="fw-bold mb-0 text-dark">Production Batches: <span class="badge bg-primary rounded-pill">{{ productions|length }}</span></h6>
+            <input type="text" id="tableLiveFilter" class="form-control form-control-sm w-auto" placeholder="Quick filter...">
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover data-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Batch ID</th>
+                        <th>Product</th>
+                        <th>Date</th>
+                        <th>Units Produced</th>
+                        <th>Worker / Team</th>
+                        <th>Materials Consumed</th>
+                        <th>Batch Cost</th>
+                        <th>Quality</th>
+                        <th>Status</th>
+                        <th class="text-end">Update / Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in productions %}
+                    <tr>
+                        <td class="fw-bold text-primary">{{ p.production_id }}</td>
+                        <td>
+                            <div class="fw-bold">{{ p.product.name if p.product else 'N/A' }}</div>
+                            <small class="text-muted">{{ p.product.category }} &bull; Size: {{ p.product.size }}</small>
+                        </td>
+                        <td>{{ p.production_date.strftime('%d %b %Y') }}</td>
+                        <td><strong class="fs-6 text-dark">{{ p.quantity_produced }} pcs</strong></td>
+                        <td>{{ p.worker_team }}</td>
+                        <td><small class="text-muted">{{ p.raw_material_used or 'N/A' }}</small></td>
+                        <td>₹{{ "{:,.2f}".format(p.production_cost) }}</td>
+                        <td>
+                            <span class="badge-status {{ p.quality_status.lower().replace(' ', '-') }}">{{ p.quality_status }}</span>
+                        </td>
+                        <td>
+                            <span class="badge-status {{ p.status.lower().replace(' ', '-') }}">{{ p.status }}</span>
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#statusModal{{ p.id }}" title="Change Status / Quality">
+                                    <i class="fa-solid fa-arrows-rotate"></i> Status
+                                </button>
+                                {% if session.get('role') == 'Admin' %}
+                                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteProdModal{{ p.id }}" title="Delete">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Status Update Modal -->
+                    <div class="modal fade" id="statusModal{{ p.id }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <form method="POST" action="{{ url_for('production.update_status', id=p.id) }}">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title fw-bold">Update Batch: {{ p.production_id }}</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p class="small text-muted mb-3">Product: <strong>{{ p.product.name }}</strong> | Produced: <strong>{{ p.quantity_produced }} units</strong></p>
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-semibold">Lifecycle Status *</label>
+                                            <select name="status" class="form-select" required>
+                                                {% for s in statuses %}
+                                                <option value="{{ s }}" {% if p.status == s %}selected{% endif %}>{{ s }}</option>
+                                                {% endfor %}
+                                            </select>
+                                            <div class="form-text text-primary small">
+                                                * Changing to <strong>Completed</strong> will add {{ p.quantity_produced }} units directly to available inventory.
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-semibold">Quality Inspection Status</label>
+                                            <select name="quality_status" class="form-select">
+                                                {% for q in qualities %}
+                                                <option value="{{ q }}" {% if p.quality_status == q %}selected{% endif %}>{{ q }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                        <button type="submit" class="btn btn-primary">Update Status</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Delete Modal -->
+                    {% if session.get('role') == 'Admin' %}
+                    <div class="modal fade" id="deleteProdModal{{ p.id }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <form method="POST" action="{{ url_for('production.delete', id=p.id) }}">
+                                    <div class="modal-header bg-danger text-white">
+                                        <h5 class="modal-title fw-bold"><i class="fa-solid fa-triangle-exclamation me-2"></i>Delete Batch</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        Delete batch <strong>{{ p.production_id }}</strong>? (If status was completed, stock will be adjusted accordingly).
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                        <button type="submit" class="btn btn-danger">Confirm Delete</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% else %}
+                    <tr>
+                        <td colspan="10" class="text-center text-muted py-4">No production records found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Production Batch Modal -->
+<div class="modal fade" id="addProductionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('production.add') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-plus text-primary me-2"></i>Create Production Batch</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Batch ID *</label>
+                            <input type="text" name="production_id" class="form-control" value="{{ next_id }}" required>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label small fw-semibold">Target Product *</label>
+                            <select name="product_id" class="form-select" required>
+                                <option value="">Select Finished Product</option>
+                                {% for pr in products %}
+                                <option value="{{ pr.id }}">{{ pr.name }} ({{ pr.category }} &bull; Current Stock: {{ pr.available_quantity }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Quantity to Produce *</label>
+                            <input type="number" name="quantity_produced" class="form-control" placeholder="e.g. 200" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Production Date *</label>
+                            <input type="date" name="production_date" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Production Batch Cost (₹)</label>
+                            <input type="number" step="0.01" name="production_cost" class="form-control" placeholder="e.g. 15000">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Worker / Team In-Charge *</label>
+                            <input type="text" name="worker_team" class="form-control" placeholder="e.g. Stitching Line 1 / Master Ramesh" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Initial Lifecycle Status *</label>
+                            <select name="status" class="form-select" required>
+                                <option value="In Progress" selected>In Progress</option>
+                                <option value="Completed">Completed (Auto Increase Stock)</option>
+                                <option value="Quality Check">Quality Check</option>
+                                <option value="Rejected">Rejected</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label small fw-semibold">Raw Material Used & Consumed</label>
+                            <input type="text" name="raw_material_used" class="form-control" placeholder="e.g. 250m Cotton Fabric, 1200 Buttons, 200 Zippers">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label small fw-semibold">Remarks & Notes</label>
+                            <textarea name="remarks" class="form-control" rows="2" placeholder="Inspection remarks or special order notes"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-vsb-primary">Create Batch</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

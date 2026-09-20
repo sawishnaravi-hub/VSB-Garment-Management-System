@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VSB Garment Manufacturing - Company Management System</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 6 Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Montserrat:wght@800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="login-screen-wrapper">
+    <div class="login-glass-card text-center">
+        <!-- Logo Branding -->
+        <div class="mb-4">
+            <img src="{{ url_for('static', filename='images/vsb_logo.svg') }}" alt="VSB Garment Manufacturing" style="max-width: 280px; height: auto;">
+        </div>
+
+        <div class="mb-4">
+            <h2 class="fw-bold text-white mb-1" style="font-family: 'Montserrat', sans-serif; letter-spacing: 2px;">
+                VSB
+            </h2>
+            <h5 class="text-info fw-semibold mb-1" style="letter-spacing: 3px;">
+                GARMENT MANUFACTURING
+            </h5>
+            <p class="text-secondary small mb-0">Company Management System</p>
+        </div>
+
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show text-start py-2 small" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close py-2" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Login Form -->
+        <form method="POST" action="{{ url_for('auth.login') }}" class="text-start mt-3">
+            <div class="mb-3">
+                <label class="form-label text-light small fw-semibold">
+                    <i class="fa-solid fa-user me-1 text-info"></i> Username
+                </label>
+                <input type="text" name="username" id="loginUsername" class="form-control" placeholder="Enter your username" value="{{ username or '' }}" required autofocus>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label text-light small fw-semibold">
+                    <i class="fa-solid fa-lock me-1 text-info"></i> Password
+                </label>
+                <input type="password" name="password" id="loginPassword" class="form-control" placeholder="Enter your password" required>
+            </div>
+
+            <button type="submit" class="btn btn-vsb-primary w-100 py-2 fs-6 shadow">
+                <i class="fa-solid fa-right-to-bracket me-2"></i> Login to System
+            </button>
+        </form>
+
+        <!-- Role Quick Access Helpers (Ideal for Demonstration) -->
+        <div class="mt-4 pt-3 border-top border-secondary border-opacity-25">
+            <div class="text-muted small mb-2 fw-semibold">Quick Demo Logins:</div>
+            <div class="d-flex justify-content-center gap-2 flex-wrap">
+                <button type="button" class="btn btn-sm btn-outline-info" onclick="fillCredentials('admin', 'admin123')">
+                    <i class="fa-solid fa-shield-halved me-1"></i> Admin
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-warning" onclick="fillCredentials('manager', 'manager123')">
+                    <i class="fa-solid fa-briefcase me-1"></i> Manager
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-success" onclick="fillCredentials('accountant', 'accountant123')">
+                    <i class="fa-solid fa-calculator me-1"></i> Accountant
+                </button>
+            </div>
+        </div>
+
+        <div class="mt-4 text-secondary small">
+            <small>Production & Financial ERP &bull; Secured with Session Auth & Passlib</small>
+        </div>
+    </div>
+</div>
+
+<script>
+function fillCredentials(user, pass) {
+    document.getElementById('loginUsername').value = user;
+    document.getElementById('loginPassword').value = pass;
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

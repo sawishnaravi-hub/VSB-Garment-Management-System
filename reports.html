@@ -1,0 +1,463 @@
+{% extends 'base.html' %}
+
+{% block title %}Enterprise Reports | VSB Garment Manufacturing{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header with Print & Export -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h3 class="fw-bold mb-1 text-dark">
+                <i class="fa-solid fa-chart-pie text-primary me-2"></i>Executive Reports & Audits
+            </h3>
+            <p class="text-muted small mb-0">Generate, audit, filter, and export comprehensive enterprise operational and financial reports</p>
+        </div>
+        <div class="d-flex gap-2 no-print">
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+                <i class="fa-solid fa-print me-1"></i> Print Report
+            </button>
+            <a href="{{ url_for('reports.export_csv', type=active_report, start_date=start_date, end_date=end_date) }}" class="btn btn-success btn-sm">
+                <i class="fa-solid fa-file-csv me-1"></i> Export to CSV
+            </a>
+        </div>
+    </div>
+
+    <!-- Print Header (Hidden on screen, visible when printing) -->
+    <div class="print-header">
+        <h2 class="fw-bold mb-0">VSB GARMENT MANUFACTURING COMPANY</h2>
+        <p class="mb-1 text-muted">Management Information System &bull; Audited Report: <strong>{{ active_report|replace('_', ' ')|upper }}</strong></p>
+        <p class="small text-muted mb-4">Generated on {{ today }} &bull; Confidential Internal Record</p>
+    </div>
+
+    <!-- Report Type Selector Tabs (No print) -->
+    <div class="card card-table p-2 mb-4 no-print">
+        <div class="d-flex flex-wrap gap-1">
+            {% for code, label in report_types %}
+            <a href="{{ url_for('reports.index', type=code) }}" class="btn btn-sm {% if active_report == code %}btn-primary fw-bold{% else %}btn-light border text-dark{% endif %}">
+                {{ label }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Filter Bar (No print) -->
+    <div class="card card-table p-3 mb-4 no-print">
+        <form method="GET" action="{{ url_for('reports.index') }}" class="row g-2 align-items-center">
+            <input type="hidden" name="type" value="{{ active_report }}">
+            <div class="col-md-4">
+                <input type="text" name="search" class="form-control form-control-sm" placeholder="Search report items..." value="{{ search }}">
+            </div>
+            <div class="col-md-3">
+                <input type="date" name="start_date" class="form-control form-control-sm" value="{{ start_date }}" placeholder="Start Date">
+            </div>
+            <div class="col-md-3">
+                <input type="date" name="end_date" class="form-control form-control-sm" value="{{ end_date }}" placeholder="End Date">
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-primary w-100">Apply Filter</button>
+                <a href="{{ url_for('reports.index', type=active_report) }}" class="btn btn-sm btn-outline-secondary" title="Reset"><i class="fa-solid fa-rotate-left"></i></a>
+            </div>
+        </form>
+    </div>
+
+    <!-- ==================== REPORT VIEWS ==================== -->
+
+    <!-- 1. Worker Report -->
+    {% if active_report == 'workers' %}
+    <div class="card card-table mb-4">
+        <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
+            <h6 class="fw-bold mb-0 text-dark">Worker Master Payroll & Deployment Audit</h6>
+            <span class="badge bg-primary">Count: {{ totals.count }} | Total Monthly Payroll: ₹{{ "{:,.2f}".format(totals.total_salary) }}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-bordered mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Worker ID</th><th>Full Name</th><th>Phone</th><th>Department</th><th>Designation</th><th>Joining Date</th><th>Monthly Salary</th><th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for w in data %}
+                    <tr>
+                        <td class="fw-bold">{{ w.worker_id }}</td>
+                        <td>{{ w.name }}</td>
+                        <td>{{ w.phone }}</td>
+                        <td>{{ w.department }}</td>
+                        <td>{{ w.designation }}</td>
+                        <td>{{ w.joining_date.strftime('%d %b %Y') if w.joining_date else '-' }}</td>
+                        <td class="fw-bold text-end">₹{{ "{:,.2f}".format(w.monthly_salary) }}</td>
+                        <td><span class="badge-status {{ w.status.lower().replace(' ', '-') }}">{{ w.status }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <th colspan="6" class="text-end">Total Base Salary Obligation:</th>
+                        <th class="text-end fw-bold text-primary">₹{{ "{:,.2f}".format(totals.total_salary) }}</th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <!-- 2. Salary Report -->
+    {% elif active_report == 'salaries' %}
+    <div class="card card-table mb-4">
+        <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
+            <h6 class="fw-bold mb-0 text-dark">Worker Salary Disbursals</h6>
+            <span class="badge bg-primary">Slips: {{ totals.count }} | Net Disbursed: ₹{{ "{:,.2f}".format(totals.total_net) }}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-bordered mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Slip ID</th><th>Worker</th><th>Dept</th><th>Month</th><th>Basic (₹)</th><th>Bonus (₹)</th><th>Deduction (₹)</th><th>Net (₹)</th><th>Status</th><th>Paid On</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in data %}
+                    <tr>
+                        <td class="fw-bold">{{ s.salary_id }}</td>
+                        <td>{{ s.worker.name }}</td>
+                        <td>{{ s.worker.department }}</td>
+                        <td>{{ s.month }}</td>
+                        <td class="text-end">₹{{ "{:,.2f}".format(s.basic_salary) }}</td>
+                        <td class="text-end text-success">+₹{{ "{:,.2f}".format(s.bonus) }}</td>
+                        <td class="text-end text-danger">-₹{{ "{:,.2f}".format(s.deduction) }}</td>
+                        <td class="text-end fw-bold text-dark">₹{{ "{:,.2f}".format(s.net_salary) }}</td>
+                        <td><span class="badge-status {{ s.payment_status.lower() }}">{{ s.payment_status }}</span></td>
+                        <td>{{ s.payment_date.strftime('%d %b %Y') if s.payment_date else '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <th colspan="4" class="text-end">Total Sum:</th>
+                        <th class="text-end">₹{{ "{:,.2f}".format(totals.total_basic) }}</th>
+                        <th class="text-end text-success">+₹{{ "{:,.2f}".format(totals.total_bonus) }}</th>
+                        <th class="text-end text-danger">-₹{{ "{:,.2f}".format(totals.total_deduction) }}</th>
+                        <th class="text-end fw-bold text-success fs-6">₹{{ "{:,.2f}".format(totals.total_net) }}</th>
+                        <th colspan="2"></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <!-- 3. Product Inventory Report -->
+    {% elif active_report == 'products' %}
+    <div class="card card-table mb-4">
+        <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
+            <h6 class="fw-bold mb-0 text-dark">Finished Garments Inventory Valuation</h6>
+            <span class="badge bg-primary">Total Finished Units: {{ "{:,}".format(totals.total_quantity) }} | Inventory Cost Value: ₹{{ "{:,.2f}".format(totals.inventory_value) }}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-bordered mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Product ID</th><th>Garment Name</th><th>Category</th><th>Size</th><th>Material</th><th>Unit Cost</th><th>Selling Price</th><th>In Stock</th><th>Inventory Value (₹)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in data %}
+                    <tr>
+                        <td class="fw-bold">{{ p.product_id }}</td>
+                        <td>{{ p.name }}</td>
+                        <td>{{ p.category }}</td>
+                        <td>{{ p.size }}</td>
+                        <td>{{ p.material }}</td>
+                        <td class="text-end">₹{{ "{:,.2f}".format(p.production_cost) }}</td>
+                        <td class="text-end">₹{{ "{:,.2f}".format(p.selling_price) }}</td>
+                        <td class="text-center fw-bold">{{ p.available_quantity }} pcs</td>
+                        <td class="text-end fw-bold text-primary">₹{{ "{:,.2f}".format(p.available_quantity * p.production_cost) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <th colspan="7" class="text-end">Total Valuation:</th>
+                        <th class="text-center fw-bold">{{ totals.total_quantity }} pcs</th>
+                        <th class="text-end fw-bold text-primary fs-6">₹{{ "{:,.2f}".format(totals.inventory_value) }}</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <!-- 4. Production Report -->
+    {% elif active_report == 'production' %}
+    <div class="card card-table mb-4">
+        <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
+            <h6 class="fw-bold mb-0 text-dark">Manufacturing Production Log</h6>
+            <span class="badge bg-primary">Batches: {{ totals.count }} | Total Produced: {{ "{:,}".format(totals.total_produced) }} pcs</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-bordered mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Batch ID</th><th>Product</th><th>Date</th><th>Quantity</th><th>Team</th><th>Production Cost</th><th>Quality</th><th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pr in data %}
+                    <tr>
+                        <td class="fw-bold">{{ pr.production_id }}</td>
+                        <td>{{ pr.product.name if pr.product else 'N/A' }}</td>
+                        <td>{{ pr.production_date.strftime('%d %b %Y') }}</td>
+                        <td class="fw-bold">{{ pr.quantity_produced }} pcs</td>
+                        <td>{{ pr.worker_team }}</td>
+                        <td class="text-end">₹{{ "{:,.2f}".format(pr.production_cost) }}</td>
+                        <td><span class="badge-status {{ pr.quality_status.lower() }}">{{ pr.quality_status }}</span></td>
+                        <td><span class="badge-status {{ pr.status.lower().replace(' ', '-') }}">{{ pr.status }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <th colspan="3" class="text-end">Total Units Produced:</th>
+                        <th class="fw-bold text-success">{{ "{:,}".format(totals.total_produced) }} pcs</th>
+                        <th class="text-end">Total Batch Cost:</th>
+                        <th class="text-end fw-bold">₹{{ "{:,.2f}".format(totals.total_cost) }}</th>
+                        <th colspan="2"></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <!-- 5. Sales Report -->
+    {% elif active_report == 'sales' %}
+    <div class="card card-table mb-4">
+        <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
+            <h6 class="fw-bold mb-0 text-dark">Garment Sales & Client Invoicing Report</h6>
+            <span class="badge bg-success">Orders: {{ totals.count }} | Total Sales: ₹{{ "{:,.2f}".format(totals.total_amount) }}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-bordered mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Invoice No</th><th>Customer</th><th>Product</th><th>Quantity</th><th>Selling Price</th><th>Total Amount (₹)</th><th>Date</th><th>Status</th><th>Method</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sl in data %}
+                    <tr>
+                        <td class="fw-bold">{{ sl.sale_id }}</td>
+                        <td>{{ sl.customer_name }}</td>
+                        <td>{{ sl.product.name if sl.product else 'N/A' }}</td>
+                        <td class="text-center">{{ sl.quantity }}</td>
+                        <td class="text-end">₹{{ "{:,.2f}".format(sl.selling_price) }}</td>
+                        <td class="text-end fw-bold text-success">₹{{ "{:,.2f}".format(sl.total_amount) }}</td>
+                        <td>{{ sl.sale_date.strftime('%d %b %Y') }}</td>
+                        <td><span class="badge-status {{ sl.payment_status.lower() }}">{{ sl.payment_status }}</span></td>
+                        <td>{{ sl.payment_method }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <th colspan="3" class="text-end">Total Quantities Sold:</th>
+                        <th class="text-center fw-bold">{{ totals.total_quantity }} pcs</th>
+                        <th class="text-end">Total Gross Sales:</th>
+                        <th class="text-end fw-bold text-success fs-6">₹{{ "{:,.2f}".format(totals.total_amount) }}</th>
+                        <th colspan="3"></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <!-- 6. Income Report -->
+    {% elif active_report == 'income' %}
+    <div class="card card-table mb-4">
+        <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
+            <h6 class="fw-bold mb-0 text-dark">Comprehensive Income Audit</h6>
+            <span class="badge bg-success">Total Inflow: ₹{{ "{:,.2f}".format(totals.total_income) }}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-bordered mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Income ID</th><th>Source Category</th><th>Title / Narrative</th><th>Amount (₹)</th><th>Date</th><th>Method</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inc in data %}
+                    <tr>
+                        <td class="fw-bold">{{ inc.income_id }}</td>
+                        <td>{{ inc.source_type }}</td>
+                        <td>{{ inc.title }}</td>
+                        <td class="text-end fw-bold text-success">₹{{ "{:,.2f}".format(inc.amount) }}</td>
+                        <td>{{ inc.date.strftime('%d %b %Y') }}</td>
+                        <td>{{ inc.payment_method }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <th colspan="3" class="text-end">Grand Total Income:</th>
+                        <th class="text-end fw-bold text-success fs-6">₹{{ "{:,.2f}".format(totals.total_income) }}</th>
+                        <th colspan="2"></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <!-- 7. Expense Report -->
+    {% elif active_report == 'expenses' %}
+    <div class="card card-table mb-4">
+        <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
+            <h6 class="fw-bold mb-0 text-dark">Operating Overheads & Expense Statement</h6>
+            <span class="badge bg-danger">Total Outflow: ₹{{ "{:,.2f}".format(totals.total_expense) }}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-bordered mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Expense ID</th><th>Category</th><th>Description</th><th>Amount (₹)</th><th>Date</th><th>Method</th><th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for exp in data %}
+                    <tr>
+                        <td class="fw-bold">{{ exp.expense_id }}</td>
+                        <td><span class="badge bg-light text-dark border">{{ exp.category }}</span></td>
+                        <td>{{ exp.description }}</td>
+                        <td class="text-end fw-bold text-danger">₹{{ "{:,.2f}".format(exp.amount) }}</td>
+                        <td>{{ exp.date.strftime('%d %b %Y') }}</td>
+                        <td>{{ exp.payment_method }}</td>
+                        <td><small class="text-muted">{{ exp.notes or '-' }}</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <th colspan="3" class="text-end">Total Expenses:</th>
+                        <th class="text-end fw-bold text-danger fs-6">₹{{ "{:,.2f}".format(totals.total_expense) }}</th>
+                        <th colspan="3"></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <!-- 8. Tax Report -->
+    {% elif active_report == 'taxes' %}
+    <div class="card card-table mb-4">
+        <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
+            <h6 class="fw-bold mb-0 text-dark">Statutory Taxes & Remittances</h6>
+            <span class="badge bg-secondary">Total Tax Liability: ₹{{ "{:,.2f}".format(totals.total_tax) }}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-bordered mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Tax ID</th><th>Tax Type</th><th>Period</th><th>Amount (₹)</th><th>Due Date</th><th>Remittance Date</th><th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tx in data %}
+                    <tr>
+                        <td class="fw-bold">{{ tx.tax_id }}</td>
+                        <td>{{ tx.tax_type }}</td>
+                        <td>{{ tx.tax_period }}</td>
+                        <td class="text-end fw-bold">₹{{ "{:,.2f}".format(tx.tax_amount) }}</td>
+                        <td>{{ tx.due_date.strftime('%d %b %Y') if tx.due_date else '-' }}</td>
+                        <td>{{ tx.payment_date.strftime('%d %b %Y') if tx.payment_date else '-' }}</td>
+                        <td><span class="badge-status {{ tx.status.lower() }}">{{ tx.status }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <th colspan="3" class="text-end">Total Taxes:</th>
+                        <th class="text-end fw-bold">₹{{ "{:,.2f}".format(totals.total_tax) }}</th>
+                        <th colspan="3">Paid: ₹{{ "{:,.2f}".format(totals.paid_tax) }} | Pending: ₹{{ "{:,.2f}".format(totals.pending_tax) }}</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <!-- 9 & 10. Profit & Loss Statement / Monthly Financial Report -->
+    {% elif active_report in ['pnl', 'monthly_financial'] %}
+    <div class="card card-table mb-4">
+        <div class="p-4 border-bottom bg-light text-center">
+            <h4 class="fw-bold mb-1">VSB GARMENT MANUFACTURING COMPANY</h4>
+            <h5 class="text-primary mb-0">
+                {% if active_report == 'pnl' %}ANNUAL / PERIODIC PROFIT & LOSS STATEMENT{% else %}MONTHLY FINANCIAL SUMMARY AUDIT{% endif %}
+            </h5>
+            <small class="text-muted">Calculated directly from verified MySQL database entries</small>
+        </div>
+        <div class="card-body p-4">
+            <div class="row g-4">
+                <!-- Income Section -->
+                <div class="col-md-6">
+                    <h6 class="fw-bold text-success border-bottom pb-2">I. REVENUE & INCOME</h6>
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span>Finished Garments Sales Revenue</span>
+                        <strong class="text-success">₹{{ "{:,.2f}".format(summary.product_sales_income) }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span>Other Income (Scrap & Job Work)</span>
+                        <strong class="text-success">₹{{ "{:,.2f}".format(summary.other_income) }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between py-2 bg-success-subtle px-2 mt-2 rounded">
+                        <strong>TOTAL GROSS INCOME (A)</strong>
+                        <strong class="text-success fs-6">₹{{ "{:,.2f}".format(summary.total_income) }}</strong>
+                    </div>
+                </div>
+
+                <!-- Expense Section -->
+                <div class="col-md-6">
+                    <h6 class="fw-bold text-danger border-bottom pb-2">II. OPERATING OVERHEADS & EXPENSES</h6>
+                    {% for c, a in summary.category_expenses.items() %}
+                    <div class="d-flex justify-content-between py-1 border-bottom small">
+                        <span>{{ c }}</span>
+                        <span class="fw-semibold">₹{{ "{:,.2f}".format(a) }}</span>
+                    </div>
+                    {% endfor %}
+                    <div class="d-flex justify-content-between py-2 bg-danger-subtle px-2 mt-2 rounded">
+                        <strong>TOTAL OPERATING EXPENSES (B)</strong>
+                        <strong class="text-danger fs-6">₹{{ "{:,.2f}".format(summary.total_expenses) }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Net Result Calculation Card -->
+            <div class="card mt-4 bg-light border p-3">
+                <div class="row text-center g-3">
+                    <div class="col-md-3">
+                        <small class="text-muted text-uppercase fw-bold">Company Opening Capital</small>
+                        <h4 class="fw-bold text-dark mt-1">₹{{ "{:,.2f}".format(summary.opening_balance) }}</h4>
+                    </div>
+                    <div class="col-md-3">
+                        <small class="text-muted text-uppercase fw-bold">Gross Income (A)</small>
+                        <h4 class="fw-bold text-success mt-1">+₹{{ "{:,.2f}".format(summary.total_income) }}</h4>
+                    </div>
+                    <div class="col-md-3">
+                        <small class="text-muted text-uppercase fw-bold">Total Expenses (B)</small>
+                        <h4 class="fw-bold text-danger mt-1">-₹{{ "{:,.2f}".format(summary.total_expenses) }}</h4>
+                    </div>
+                    <div class="col-md-3">
+                        <small class="text-muted text-uppercase fw-bold">Net Profit (A - B)</small>
+                        <h4 class="fw-bold {% if summary.net_profit >= 0 %}text-primary{% else %}text-danger{% endif %} mt-1">
+                            ₹{{ "{:,.2f}".format(summary.net_profit) }}
+                        </h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Company Balance Result -->
+            <div class="alert alert-primary mt-4 text-center py-3 mb-0" role="alert">
+                <span class="text-uppercase small fw-bold tracking-wide">Net Liquidity Balance: (Opening Capital + Net Profit)</span>
+                <h2 class="fw-bold mb-0 text-primary mt-1">₹{{ "{:,.2f}".format(summary.current_balance) }}</h2>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

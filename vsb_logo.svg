@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100" width="400" height="100">
+  <defs>
+    <linearGradient id="vsbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0ea5e9" />
+      <stop offset="100%" stop-color="#0d9488" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+  </defs>
+
+  <!-- Emblem Icon: Stylized Loom/Fabric & Shears Shield -->
+  <g transform="translate(10, 10)">
+    <!-- Hexagonal shield badge -->
+    <polygon points="40,2 78,22 78,58 40,78 2,58 2,22" fill="url(#vsbGrad)" />
+    <!-- Inner border -->
+    <polygon points="40,6 74,24 74,56 40,74 6,56 6,24" fill="#0f172a" stroke="url(#goldGrad)" stroke-width="2" />
+    <!-- Stylized V Monogram & Thread Needle -->
+    <path d="M22,26 L40,60 L58,26 L48,26 L40,46 L32,26 Z" fill="url(#goldGrad)" />
+    <circle cx="40" cy="20" r="4" fill="#38bdf8" />
+    <!-- Horizontal Weave Lines -->
+    <line x1="20" y1="36" x2="60" y2="36" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.7"/>
+    <line x1="24" y1="46" x2="56" y2="46" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.7"/>
+  </g>
+
+  <!-- Typography -->
+  <g transform="translate(100, 15)">
+    <!-- Main VSB Brand -->
+    <text x="0" y="32" font-family="'Segoe UI', 'Montserrat', sans-serif" font-weight="900" font-size="34" letter-spacing="3" fill="#ffffff">
+      VSB
+    </text>
+    <text x="92" y="32" font-family="'Segoe UI', 'Roboto', sans-serif" font-weight="700" font-size="20" letter-spacing="1.5" fill="#38bdf8">
+      GARMENT
+    </text>
+    <text x="92" y="52" font-family="'Segoe UI', 'Roboto', sans-serif" font-weight="600" font-size="13" letter-spacing="3.5" fill="#94a3b8">
+      MANUFACTURING
+    </text>
+    <!-- Tagline -->
+    <text x="0" y="68" font-family="'Segoe UI', sans-serif" font-size="10.5" font-weight="500" letter-spacing="1.5" fill="url(#goldGrad)">
+      ENTERPRISE MANAGEMENT SYSTEM
+    </text>
+  </g>
+</svg>

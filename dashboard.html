@@ -1,0 +1,357 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard | VSB Garment Manufacturing{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header with greeting -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h3 class="fw-bold mb-1 text-dark">
+                {% if role == 'Admin' %}
+                    <i class="fa-solid fa-shield-halved text-primary me-2"></i>Executive Admin Dashboard
+                {% elif role == 'Manager' %}
+                    <i class="fa-solid fa-briefcase text-warning me-2"></i>Operations Manager Dashboard
+                {% else %}
+                    <i class="fa-solid fa-calculator text-success me-2"></i>Finance & Accounting Dashboard
+                {% endif %}
+            </h3>
+            <p class="text-muted small mb-0">Live real-time operational overview for VSB Garment Manufacturing Company</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('reports.index') }}" class="btn btn-outline-primary btn-sm">
+                <i class="fa-solid fa-file-export me-1"></i> Reports
+            </a>
+            {% if role in ['Admin', 'Manager'] %}
+            <a href="{{ url_for('production.index') }}" class="btn btn-vsb-primary btn-sm">
+                <i class="fa-solid fa-plus me-1"></i> New Production
+            </a>
+            {% endif %}
+            {% if role in ['Admin', 'Accountant'] %}
+            <a href="{{ url_for('sales.index') }}" class="btn btn-vsb-success btn-sm">
+                <i class="fa-solid fa-cart-plus me-1"></i> New Sale
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Low Stock Alert Banner -->
+    {% if stats.low_stock_products > 0 %}
+    <div class="alert alert-warning border-warning shadow-sm d-flex align-items-center justify-content-between mb-4" role="alert">
+        <div class="d-flex align-items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation fs-4 text-warning"></i>
+            <div>
+                <strong>Low Stock Alert!</strong> There are <strong>{{ stats.low_stock_products }}</strong> products currently at or below minimum threshold.
+            </div>
+        </div>
+        <a href="{{ url_for('products.index') }}?low_stock=1" class="btn btn-sm btn-warning fw-bold">
+            View Low Stock Items <i class="fa-solid fa-arrow-right ms-1"></i>
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- 8 Dynamic Metric Cards -->
+    <div class="row g-3 mb-4">
+        <!-- 1. Total Income -->
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card kpi-income">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="kpi-title">Total Income</div>
+                        <h4 class="kpi-value text-success">₹{{ "{:,.2f}".format(stats.total_income) }}</h4>
+                        <small class="text-muted" style="font-size: 0.72rem;">Sales + Other Income</small>
+                    </div>
+                    <div class="kpi-icon bg-success-subtle text-success">
+                        <i class="fa-solid fa-arrow-trend-up"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Total Expenses -->
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card kpi-expense">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="kpi-title">Total Expenses</div>
+                        <h4 class="kpi-value text-danger">₹{{ "{:,.2f}".format(stats.total_expenses) }}</h4>
+                        <small class="text-muted" style="font-size: 0.72rem;">Salary, Material, Rent, Tax etc.</small>
+                    </div>
+                    <div class="kpi-icon bg-danger-subtle text-danger">
+                        <i class="fa-solid fa-arrow-trend-down"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Net Profit -->
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card kpi-profit">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="kpi-title">Net Profit</div>
+                        <h4 class="kpi-value {% if stats.net_profit >= 0 %}text-primary{% else %}text-danger{% endif %}">
+                            ₹{{ "{:,.2f}".format(stats.net_profit) }}
+                        </h4>
+                        <small class="text-muted" style="font-size: 0.72rem;">Income - Total Expenses</small>
+                    </div>
+                    <div class="kpi-icon bg-primary-subtle text-primary">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Current Balance -->
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card kpi-balance">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="kpi-title">Current Balance</div>
+                        <h4 class="kpi-value" style="color: #6366f1;">₹{{ "{:,.2f}".format(stats.current_balance) }}</h4>
+                        <small class="text-muted" style="font-size: 0.72rem;">Opening (₹{{ "{:,.0f}".format(stats.opening_balance) }}) + Profit</small>
+                    </div>
+                    <div class="kpi-icon" style="background-color: #ede9fe; color: #6366f1;">
+                        <i class="fa-solid fa-wallet"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Total Salary Paid -->
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card kpi-salary">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="kpi-title">Total Salary</div>
+                        <h4 class="kpi-value text-warning">₹{{ "{:,.2f}".format(stats.total_salary_paid) }}</h4>
+                        <small class="text-muted" style="font-size: 0.72rem;">Paid worker salaries</small>
+                    </div>
+                    <div class="kpi-icon bg-warning-subtle text-warning">
+                        <i class="fa-solid fa-money-check-dollar"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. Total Tax -->
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card kpi-tax">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="kpi-title">Total Tax</div>
+                        <h4 class="kpi-value text-secondary">₹{{ "{:,.2f}".format(stats.total_tax_paid) }}</h4>
+                        <small class="text-muted" style="font-size: 0.72rem;">GST & Corporate taxes paid</small>
+                    </div>
+                    <div class="kpi-icon bg-secondary-subtle text-secondary">
+                        <i class="fa-solid fa-file-invoice-dollar"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. Total Production (Units) -->
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card kpi-prod">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="kpi-title">Total Production</div>
+                        <h4 class="kpi-value text-info">{{ "{:,}".format(stats.total_production_units) }} <span class="fs-6 text-muted">units</span></h4>
+                        <small class="text-muted" style="font-size: 0.72rem;">Completed manufacturing</small>
+                    </div>
+                    <div class="kpi-icon bg-info-subtle text-info">
+                        <i class="fa-solid fa-industry"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. Number of Workers -->
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card kpi-workers">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="kpi-title">Number of Workers</div>
+                        <h4 class="kpi-value" style="color: #ec4899;">{{ stats.total_workers }} <span class="fs-6 text-muted">active</span></h4>
+                        <small class="text-muted" style="font-size: 0.72rem;">Capacity: 50–100 workers</small>
+                    </div>
+                    <div class="kpi-icon" style="background-color: #fce7f3; color: #ec4899;">
+                        <i class="fa-solid fa-people-carry-box"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5 Chart.js Charts -->
+    <div class="row g-4 mb-4">
+        <!-- Chart 1: Monthly Income vs Expenses -->
+        <div class="col-lg-8">
+            <div class="card card-table h-100 p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-chart-column text-primary me-2"></i>1. Monthly Income vs Expenses (₹)
+                    </h6>
+                    <span class="badge bg-light text-muted border">Live MySQL Data</span>
+                </div>
+                <div style="position: relative; height: 280px;">
+                    <canvas id="chartIncomeExpense"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart 2: Monthly Profit -->
+        <div class="col-lg-4">
+            <div class="card card-table h-100 p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-arrow-trend-up text-info me-2"></i>2. Monthly Profit Trend
+                    </h6>
+                    <span class="badge bg-light text-muted border">₹ INR</span>
+                </div>
+                <div style="position: relative; height: 280px;">
+                    <canvas id="chartProfit"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart 3: Product Sales -->
+        <div class="col-lg-4">
+            <div class="card card-table h-100 p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-chart-pie text-success me-2"></i>3. Product Sales Distribution
+                    </h6>
+                    <span class="badge bg-light text-muted border">Units</span>
+                </div>
+                <div style="position: relative; height: 250px;">
+                    <canvas id="chartProductSales"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart 4: Expense Category -->
+        <div class="col-lg-4">
+            <div class="card card-table h-100 p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-receipt text-danger me-2"></i>4. Expense Category Breakdown
+                    </h6>
+                    <span class="badge bg-light text-muted border">₹ Share</span>
+                </div>
+                <div style="position: relative; height: 250px;">
+                    <canvas id="chartExpenseCategory"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart 5: Production Quantity -->
+        <div class="col-lg-4">
+            <div class="card card-table h-100 p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-boxes-packing text-teal me-2"></i>5. Production Quantity
+                    </h6>
+                    <span class="badge bg-light text-muted border">Units</span>
+                </div>
+                <div style="position: relative; height: 250px;">
+                    <canvas id="chartProduction"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Sales & Production Tables -->
+    <div class="row g-4">
+        <!-- Recent Sales -->
+        <div class="col-lg-6">
+            <div class="card card-table">
+                <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-receipt text-primary me-2"></i>Recent Sales Orders
+                    </h6>
+                    <a href="{{ url_for('sales.index') }}" class="btn btn-sm btn-outline-secondary">View All</a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Invoice</th>
+                                <th>Customer</th>
+                                <th>Product</th>
+                                <th>Qty</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in recent_sales %}
+                            <tr>
+                                <td class="fw-bold text-primary">{{ sale.sale_id }}</td>
+                                <td>{{ sale.customer_name }}</td>
+                                <td>{{ sale.product.name if sale.product else 'N/A' }}</td>
+                                <td>{{ sale.quantity }}</td>
+                                <td class="fw-bold">₹{{ "{:,.2f}".format(sale.total_amount) }}</td>
+                                <td>
+                                    <span class="badge-status {{ sale.payment_status.lower() }}">{{ sale.payment_status }}</span>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-3">No recent sales records.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Production Batches -->
+        <div class="col-lg-6">
+            <div class="card card-table">
+                <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-industry text-warning me-2"></i>Recent Production Batches
+                    </h6>
+                    {% if role in ['Admin', 'Manager'] %}
+                    <a href="{{ url_for('production.index') }}" class="btn btn-sm btn-outline-secondary">View All</a>
+                    {% endif %}
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Batch ID</th>
+                                <th>Product</th>
+                                <th>Date</th>
+                                <th>Qty Produced</th>
+                                <th>Team</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in recent_productions %}
+                            <tr>
+                                <td class="fw-bold">{{ p.production_id }}</td>
+                                <td>{{ p.product.name if p.product else 'N/A' }}</td>
+                                <td>{{ p.production_date.strftime('%d %b %Y') }}</td>
+                                <td><span class="badge bg-light text-dark border">{{ p.quantity_produced }} pcs</span></td>
+                                <td>{{ p.worker_team }}</td>
+                                <td>
+                                    <span class="badge-status {{ p.status.lower().replace(' ', '-') }}">{{ p.status }}</span>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-3">No recent production batches.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}VSB Garment Manufacturing Management System{% endblock %}</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 6 Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <!-- Google Font: Inter & Montserrat -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Montserrat:wght@700;900&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<div class="app-wrapper">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="{{ url_for('dashboard.index') }}" class="sidebar-brand">
+                <img src="{{ url_for('static', filename='images/vsb_logo.svg') }}" alt="VSB Logo">
+            </a>
+        </div>
+
+        <ul class="sidebar-nav">
+            <li class="sidebar-heading">Core</li>
+            <li class="nav-item">
+                <a href="{{ url_for('dashboard.index') }}" class="nav-link-custom {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+                    <i class="fa-solid fa-gauge-high"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+
+            <li class="sidebar-heading">Operations</li>
+            {% if session.get('role') in ['Admin', 'Manager'] %}
+            <li class="nav-item">
+                <a href="{{ url_for('workers.index') }}" class="nav-link-custom {% if 'workers' in request.endpoint %}active{% endif %}">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Workers</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('products.index') }}" class="nav-link-custom {% if 'products' in request.endpoint %}active{% endif %}">
+                    <i class="fa-solid fa-shirt"></i>
+                    <span>Products</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('materials.index') }}" class="nav-link-custom {% if 'materials' in request.endpoint %}active{% endif %}">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                    <span>Raw Materials</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('production.index') }}" class="nav-link-custom {% if 'production' in request.endpoint %}active{% endif %}">
+                    <i class="fa-solid fa-industry"></i>
+                    <span>Production</span>
+                </a>
+            </li>
+            {% endif %}
+
+            <li class="nav-item">
+                <a href="{{ url_for('sales.index') }}" class="nav-link-custom {% if 'sales' in request.endpoint %}active{% endif %}">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                    <span>Sales & Orders</span>
+                </a>
+            </li>
+
+            <li class="sidebar-heading">Finance & Accounting</li>
+            {% if session.get('role') in ['Admin', 'Accountant'] %}
+            <li class="nav-item">
+                <a href="{{ url_for('salaries.index') }}" class="nav-link-custom {% if 'salaries' in request.endpoint %}active{% endif %}">
+                    <i class="fa-solid fa-money-check-dollar"></i>
+                    <span>Salary & Payroll</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('expenses.index') }}" class="nav-link-custom {% if 'expenses' in request.endpoint %}active{% endif %}">
+                    <i class="fa-solid fa-receipt"></i>
+                    <span>Expenses</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('taxes.index') }}" class="nav-link-custom {% if 'taxes' in request.endpoint %}active{% endif %}">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                    <span>Taxes</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('finance.index') }}" class="nav-link-custom {% if 'finance' in request.endpoint %}active{% endif %}">
+                    <i class="fa-solid fa-scale-balanced"></i>
+                    <span>Finance & P&L</span>
+                </a>
+            </li>
+            {% endif %}
+
+            <li class="sidebar-heading">Analytics & Config</li>
+            <li class="nav-item">
+                <a href="{{ url_for('reports.index') }}" class="nav-link-custom {% if 'reports' in request.endpoint %}active{% endif %}">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>Reports</span>
+                </a>
+            </li>
+            {% if session.get('role') == 'Admin' %}
+            <li class="nav-item">
+                <a href="{{ url_for('settings.index') }}" class="nav-link-custom {% if 'settings' in request.endpoint %}active{% endif %}">
+                    <i class="fa-solid fa-gear"></i>
+                    <span>Settings</span>
+                </a>
+            </li>
+            {% endif %}
+            <li class="nav-item mt-3">
+                <a href="{{ url_for('auth.logout') }}" class="nav-link-custom text-danger">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Logout</span>
+                </a>
+            </li>
+        </ul>
+
+        <div class="sidebar-footer">
+            <div class="d-flex align-items-center gap-2">
+                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 34px; height: 34px; font-size: 0.85rem; font-weight: 700;">
+                    {{ session.get('username', 'U')[:1].upper() }}
+                </div>
+                <div class="overflow-hidden">
+                    <div class="text-truncate text-white fw-semibold small">{{ session.get('full_name', 'User') }}</div>
+                    <span class="badge bg-secondary" style="font-size: 0.65rem;">{{ session.get('role', 'Staff') }}</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="main-content">
+        <!-- Top Navigation Bar -->
+        <header class="top-navbar">
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-sm btn-outline-secondary d-lg-none" id="sidebarToggle" type="button">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div class="d-none d-md-block">
+                    <h5 class="mb-0 fw-bold text-dark">VSB Garment Manufacturing</h5>
+                    <small class="text-muted">Enterprise Management System</small>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                <!-- User badge -->
+                <div class="d-flex align-items-center gap-2 px-2 py-1 rounded bg-light border">
+                    <i class="fa-solid fa-circle-user text-primary fs-5"></i>
+                    <div class="d-none d-sm-block text-end">
+                        <div class="fw-bold text-dark small mb-0">{{ session.get('full_name') }}</div>
+                        <div class="text-muted" style="font-size: 0.7rem;">Role: <span class="badge bg-primary">{{ session.get('role') }}</span></div>
+                    </div>
+                </div>
+
+                <!-- Quick Logout -->
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-sm btn-outline-danger" title="Logout">
+                    <i class="fa-solid fa-power-off"></i>
+                </a>
+            </div>
+        </header>
+
+        <!-- Flash Notifications -->
+        <div class="container-fluid px-4 pt-3 no-print">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm mb-2" role="alert">
+                            <div class="d-flex align-items-center gap-2">
+                                {% if category == 'success' %}
+                                    <i class="fa-solid fa-circle-check fs-5"></i>
+                                {% elif category == 'danger' %}
+                                    <i class="fa-solid fa-triangle-exclamation fs-5"></i>
+                                {% elif category == 'warning' %}
+                                    <i class="fa-solid fa-bell fs-5"></i>
+                                {% else %}
+                                    <i class="fa-solid fa-circle-info fs-5"></i>
+                                {% endif %}
+                                <div>{{ message }}</div>
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <!-- Page Content -->
+        <section class="content-body">
+            {% block content %}{% endblock %}
+        </section>
+
+        <!-- Footer -->
+        <footer class="text-center py-3 text-muted small border-top bg-white no-print">
+            &copy; 2026 <strong>VSB Garment Manufacturing Company</strong>. All rights reserved. Powered by Python Flask & MySQL.
+        </footer>
+    </main>
+</div>
+
+<!-- Bootstrap 5 Bundle JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Chart.js 4 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Custom Application JS -->
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

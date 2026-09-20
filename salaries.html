@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+
+{% block title %}Salary & Payroll Management | VSB Garment Manufacturing{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h3 class="fw-bold mb-1 text-dark">
+                <i class="fa-solid fa-money-check-dollar text-primary me-2"></i>Worker Salary & Payroll
+            </h3>
+            <p class="text-muted small mb-0">Manage monthly wages, bonuses, statutory deductions, and payroll expense integration</p>
+        </div>
+        <div>
+            <button type="button" class="btn btn-vsb-primary" data-bs-toggle="modal" data-bs-target="#addSalaryModal">
+                <i class="fa-solid fa-file-invoice-dollar me-1"></i> Generate Salary Slip
+            </button>
+        </div>
+    </div>
+
+    <!-- Duplicate Prevention & Expense Notice -->
+    <div class="alert alert-primary border-primary-subtle d-flex align-items-center gap-2 mb-4 py-2" role="alert">
+        <i class="fa-solid fa-shield-check fs-5 text-primary"></i>
+        <div class="small">
+            <strong>System Safeguard & Accounting Rule:</strong> The database enforces strict unique checks to prevent duplicate salary payments for the same worker in the same month. Marking a salary as <strong>Paid</strong> automatically adds it to Company Expenses under the <strong>Salary</strong> category!
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card card-table p-3 mb-4">
+        <form method="GET" action="{{ url_for('salaries.index') }}" class="row g-2 align-items-center">
+            <div class="col-md-5">
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="fa-regular fa-calendar text-muted"></i></span>
+                    <input type="month" name="month" class="form-control" value="{{ selected_month }}" placeholder="Filter by Month">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <select name="status" class="form-select">
+                    <option value="">All Payment Statuses</option>
+                    <option value="Paid" {% if selected_status == 'Paid' %}selected{% endif %}>Paid</option>
+                    <option value="Pending" {% if selected_status == 'Pending' %}selected{% endif %}>Pending</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary w-100">Filter</button>
+                <a href="{{ url_for('salaries.index') }}" class="btn btn-outline-secondary" title="Reset"><i class="fa-solid fa-rotate-left"></i></a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Salary Slips Table -->
+    <div class="card card-table">
+        <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+            <h6 class="fw-bold mb-0 text-dark">Salary Records: <span class="badge bg-primary rounded-pill">{{ salaries|length }}</span></h6>
+            <input type="text" id="tableLiveFilter" class="form-control form-control-sm w-auto" placeholder="Quick filter...">
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover data-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Salary ID</th>
+                        <th>Worker</th>
+                        <th>Department</th>
+                        <th>Month</th>
+                        <th>Basic Pay (₹)</th>
+                        <th>Bonus (₹)</th>
+                        <th>Deduction (₹)</th>
+                        <th>Net Salary (₹)</th>
+                        <th>Status</th>
+                        <th>Payment Date</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sal in salaries %}
+                    <tr>
+                        <td class="fw-bold text-primary">{{ sal.salary_id }}</td>
+                        <td>
+                            <div class="fw-semibold">{{ sal.worker.name if sal.worker else 'N/A' }}</div>
+                            <small class="text-muted">{{ sal.worker.worker_id if sal.worker else '' }}</small>
+                        </td>
+                        <td><span class="badge bg-light text-dark border">{{ sal.worker.department if sal.worker else 'N/A' }}</span></td>
+                        <td><strong>{{ sal.month }}</strong></td>
+                        <td>₹{{ "{:,.2f}".format(sal.basic_salary) }}</td>
+                        <td class="text-success">+₹{{ "{:,.2f}".format(sal.bonus) }}</td>
+                        <td class="text-danger">-₹{{ "{:,.2f}".format(sal.deduction) }}</td>
+                        <td class="fw-bold text-dark fs-6">₹{{ "{:,.2f}".format(sal.net_salary) }}</td>
+                        <td>
+                            <span class="badge-status {{ sal.payment_status.lower() }}">{{ sal.payment_status }}</span>
+                        </td>
+                        <td>{{ sal.payment_date.strftime('%d %b %Y') if sal.payment_date else '-' }}</td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                {% if sal.payment_status == 'Pending' %}
+                                <form method="POST" action="{{ url_for('salaries.mark_paid', id=sal.id) }}" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-success" title="Mark as Paid & Record Expense">
+                                        <i class="fa-solid fa-check me-1"></i> Pay Now
+                                    </button>
+                                </form>
+                                {% else %}
+                                <span class="badge bg-success-subtle text-success py-2 px-2"><i class="fa-solid fa-check-circle me-1"></i> Paid</span>
+                                {% endif %}
+                                {% if session.get('role') == 'Admin' %}
+                                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteSalModal{{ sal.id }}" title="Delete">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Delete Modal -->
+                    {% if session.get('role') == 'Admin' %}
+                    <div class="modal fade" id="deleteSalModal{{ sal.id }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <form method="POST" action="{{ url_for('salaries.delete', id=sal.id) }}">
+                                    <div class="modal-header bg-danger text-white">
+                                        <h5 class="modal-title fw-bold"><i class="fa-solid fa-triangle-exclamation me-2"></i>Delete Salary Record</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        Delete salary record <strong>{{ sal.salary_id }}</strong> for {{ sal.worker.name }} ({{ sal.month }})?
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                        <button type="submit" class="btn btn-danger">Confirm Delete</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% else %}
+                    <tr>
+                        <td colspan="11" class="text-center text-muted py-4">No salary records found for the selected criteria.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Salary Modal -->
+<div class="modal fade" id="addSalaryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('salaries.add') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-file-invoice-dollar text-primary me-2"></i>Generate Worker Salary Slip</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Salary Slip ID *</label>
+                            <input type="text" name="salary_id" class="form-control" value="{{ next_id }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Payroll Month (YYYY-MM) *</label>
+                            <input type="month" name="month" class="form-control" value="{{ current_month }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Payment Status *</label>
+                            <select name="payment_status" class="form-select" required>
+                                <option value="Pending" selected>Pending</option>
+                                <option value="Paid">Paid (Auto-Records Expense)</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label small fw-semibold">Select Worker *</label>
+                            <select name="worker_id" id="salWorkerSelect" class="form-select" required>
+                                <option value="">-- Choose Worker --</option>
+                                {% for w in workers %}
+                                <option value="{{ w.id }}" data-salary="{{ w.monthly_salary }}">
+                                    {{ w.name }} ({{ w.worker_id }} &bull; {{ w.department }} &bull; Base: ₹{{ w.monthly_salary }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold">Basic Salary (₹) *</label>
+                            <input type="number" step="0.01" name="basic_salary" id="salBasic" class="form-control bg-light" readonly placeholder="Auto from worker">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold">Overtime / Bonus (₹)</label>
+                            <input type="number" step="0.01" name="bonus" id="salBonus" class="form-control" value="0.00">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold">Deductions (₹)</label>
+                            <input type="number" step="0.01" name="deduction" id="salDeduction" class="form-control" value="0.00">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold">Net Payable Salary (₹)</label>
+                            <input type="text" id="salNet" class="form-control fw-bold text-success bg-light" readonly placeholder="0.00">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Payment Method</label>
+                            <select name="payment_method" class="form-select">
+                                <option value="Bank Transfer" selected>Bank Transfer (NEFT/IMPS)</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Cheque">Cheque</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Disbursement Date</label>
+                            <input type="date" name="payment_date" class="form-control">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Notes / Attendance Remarks</label>
+                            <textarea name="notes" class="form-control" rows="2" placeholder="e.g. 26 days present, 4 overtime shifts"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-vsb-primary">Save Salary Slip</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
